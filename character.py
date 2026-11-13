@@ -1,10 +1,15 @@
 from items import Weapon
 
+
 class Character:
     """Represents a character in the RPG."""
 
     def __init__(self, name: str, hp_max: int = 100, damage: int = 10,
                  weapon: Weapon | None = None) -> None:
+
+        if hp_max <= 0:
+            raise ValueError("Maximum HP must be greater than 0")
+
         self.name = name
         self._hp = hp_max
         self.hp_max = hp_max
@@ -17,14 +22,21 @@ class Character:
             amount = self.weapon.roll_damage()
         else:
             amount = self.damage
+
         target.take_damage(amount)
 
     def take_damage(self, amount: int) -> None:
         """Reduce own HP, never below 0."""
+        if amount < 0:
+            raise ValueError("Damage cannot be negative")
+
         self._hp = max(self._hp - amount, 0)
 
     def heal(self, amount: int) -> None:
         """Increase own HP, never above hp_max."""
+        if amount < 0:
+            raise ValueError("Healing cannot be negative")
+
         self._hp = min(self._hp + amount, self.hp_max)
 
     def introduce(self) -> None:
@@ -51,11 +63,21 @@ class Warrior(Character):
 
     def __init__(self, name: str, hp_max: int = 100, damage: int = 10,
                  weapon: Weapon | None = None, armor: int = 5) -> None:
+
         super().__init__(name, hp_max, damage, weapon)
+
+        if armor < 0:
+            raise ValueError("Armor cannot be negative")
+
         self.armor = armor
 
     def take_damage(self, amount: int) -> None:
-        reduced = max(amount - self.armor, 0)   # armor must never heal
+        """Reduce incoming damage using armor."""
+
+        if amount < 0:
+            raise ValueError("Damage cannot be negative")
+
+        reduced = max(amount - self.armor, 0)
         super().take_damage(reduced)
 
 
@@ -68,14 +90,24 @@ class Mage(Character):
     def __init__(self, name: str, hp_max: int = 100, damage: int = 10,
                  weapon: Weapon | None = None,
                  mana: int = 30, mana_max: int = 30) -> None:
+
         super().__init__(name, hp_max, damage, weapon)
+
+        if mana_max < 0:
+            raise ValueError("Maximum mana cannot be negative")
+
+        if mana < 0 or mana > mana_max:
+            raise ValueError("Mana must be between 0 and maximum mana")
+
         self.mana = mana
         self.mana_max = mana_max
 
     def attack(self, target: Character) -> None:
+        """Use magic if enough mana, otherwise use normal attack."""
+
         if self.mana >= self.SPELL_COST:
             self.mana -= self.SPELL_COST
-            target.take_damage(self.damage * 2)   # spell ignores weapon
+            target.take_damage(self.damage * 2)
         else:
-            super().attack(target)                # base attack, uses weapon
+            super().attack(target)
             self.mana = min(self.mana + self.MANA_RESTORE, self.mana_max)
